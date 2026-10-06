@@ -1,0 +1,8 @@
+ws/build/
+ws/install/
+ws/log/
+__pycache__/
+*.pyc
+.lgd-nfy*
+ws/web/certs/
+.DS_Store

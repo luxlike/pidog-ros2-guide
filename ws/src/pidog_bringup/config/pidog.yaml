@@ -1,0 +1,6 @@
+pidog_driver:
+  ros__parameters:
+    walk_speed: 98
+    action_speed: 80
+    joint_speed: 100
+    cmd_timeout: 0.6

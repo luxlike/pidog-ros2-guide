@@ -1,0 +1,44 @@
+x-ros-common: &ros-common
+  build: .
+  image: pidog-ros:lyrical
+  network_mode: host
+  ipc: host            # required: shared-memory transport between containers
+  environment:
+    - ROS_DOMAIN_ID=7
+    - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+services:
+  zenoh:
+    <<: *ros-common
+    container_name: pidog-zenoh
+    command: ros2 run rmw_zenoh_cpp rmw_zenohd
+    restart: unless-stopped
+
+  pidog:
+    <<: *ros-common
+    container_name: pidog
+    privileged: true   # dev convenience; narrow down with devices + group_add later
+    devices:
+      - /dev/i2c-1
+      - /dev/spidev0.0
+      # Pi 5: map the RP1 chip under BOTH names (check with `gpiodetect` on host;
+      # if RP1 shows up as gpiochip4, change the left side of both lines)
+      - /dev/gpiochip0:/dev/gpiochip0
+      - /dev/gpiochip0:/dev/gpiochip4
+      - /dev/snd
+    volumes:
+      - ./ws:/ws
+      - /run/udev:/run/udev:ro
+      - /sys:/sys
+      # Servo calibration saved on the host (0_calibration.py) must be visible
+      # to Pidog() in the container. Find the path with:
+      #   sudo find / -name "pidog.conf" -not -path "*/proc/*" 2>/dev/null
+      # and adjust both sides, e.g.:
+      # - /home/<user>/.config/pidog:/root/.config/pidog
+    depends_on: [zenoh]
+    command: ros2 launch pidog_bringup robot.launch.py
+    stop_signal: SIGINT        # same as Ctrl+C -> driver lies down, releases servos
+    stop_grace_period: 15s
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

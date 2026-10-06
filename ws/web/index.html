@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>PiDog Controller</title>
+<style>
+  body { font-family: -apple-system, sans-serif; text-align: center; margin: 16px;
+         -webkit-user-select: none; user-select: none; touch-action: none; }
+  #status { margin: 8px 0 16px; font-weight: 600; }
+  .pad { display: grid; grid-template-columns: repeat(3, 90px); gap: 10px; justify-content: center; }
+  button { height: 90px; font-size: 28px; border-radius: 16px; border: none; background: #e8e8ee; }
+  button:active { background: #b8c6ff; }
+  .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .actions button { height: 48px; font-size: 16px; padding: 0 16px; }
+</style>
+</head>
+<body>
+  <h2>PiDog</h2>
+  <div id="status">연결 중...</div>
+  <div class="pad">
+    <span></span><button data-vx="0.2" data-wz="0">▲</button><span></span>
+    <button data-vx="0" data-wz="0.5">◀</button><span></span><button data-vx="0" data-wz="-0.5">▶</button>
+    <span></span><button data-vx="-0.2" data-wz="0">▼</button><span></span>
+  </div>
+  <div class="actions">
+    <button data-action="stand">서기</button>
+    <button data-action="sit">앉기</button>
+    <button data-action="lie">엎드리기</button>
+    <button data-action="wag_tail">꼬리</button>
+    <button data-action="stop">정지</button>
+  </div>
+<script>
+  // rosbridge runs on the same host as this page (port 9090)
+  const url = `ws://${location.hostname}:9090`;
+  const statusEl = document.getElementById('status');
+  let ws, timer = null, cmd = null;
+
+  function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+  function connect() {
+    ws = new WebSocket(url);
+    ws.onopen = () => {
+      statusEl.textContent = '연결됨: ' + url;
+      send({op: 'advertise', topic: '/cmd_vel', type: 'geometry_msgs/msg/Twist'});
+      send({op: 'advertise', topic: '/pidog/action', type: 'std_msgs/msg/String'});
+    };
+    ws.onclose = () => { statusEl.textContent = '연결 끊김, 재시도 중...'; setTimeout(connect, 2000); };
+  }
+
+  function publishCmd() {
+    send({op: 'publish', topic: '/cmd_vel', msg: {
+      linear: {x: cmd.vx, y: 0, z: 0}, angular: {x: 0, y: 0, z: cmd.wz}}});
+  }
+
+  function start(vx, wz) {
+    cmd = {vx, wz};
+    publishCmd();
+    clearInterval(timer);
+    timer = setInterval(publishCmd, 100);   // 10 Hz while pressed
+  }
+
+  function stop() {
+    clearInterval(timer); timer = null;
+    if (cmd) { cmd = {vx: 0, wz: 0}; publishCmd(); cmd = null; }
+  }
+
+  document.querySelectorAll('.pad button').forEach(b => {
+    const vx = parseFloat(b.dataset.vx), wz = parseFloat(b.dataset.wz);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); start(vx, wz); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+  });
+
+  document.querySelectorAll('.actions button').forEach(b => {
+    b.addEventListener('click', () =>
+      send({op: 'publish', topic: '/pidog/action', msg: {data: b.dataset.action}}));
+  });
+
+  connect();
+</script>
+</body>
+</html>

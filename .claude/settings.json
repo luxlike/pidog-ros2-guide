@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose logs:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker exec pidog bash -c \"cd /ws && colcon build:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)"
+    ],
+    "ask": [
+      "Bash(docker compose restart:*)",
+      "Bash(docker compose up:*)",
+      "Bash(docker exec:*)"
+    ],
+    "deny": [
+      "Bash(sudo rm:*)",
+      "Bash(docker system prune:*)"
+    ]
+  }
+}
