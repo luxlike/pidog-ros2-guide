@@ -6,13 +6,27 @@
 <title>PiDog Controller</title>
 <style>
   body { font-family: -apple-system, sans-serif; text-align: center; margin: 16px;
-         -webkit-user-select: none; user-select: none; touch-action: none; }
+         -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+  .pad { touch-action: none; }
   #status { margin: 8px 0 16px; font-weight: 600; }
   .pad { display: grid; grid-template-columns: repeat(3, 90px); gap: 10px; justify-content: center; }
   button { height: 90px; font-size: 28px; border-radius: 16px; border: none; background: #e8e8ee; }
   button:active { background: #b8c6ff; }
   .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   .actions button { height: 48px; font-size: 16px; padding: 0 16px; }
+  .ball { margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px; }
+  .colors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+  .colors button { width: 52px; height: 52px; border-radius: 50%; font-size: 13px; color: #fff;
+                   text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .colors button.on { outline: 4px solid #333; }
+  .row { display: flex; gap: 8px; justify-content: center; align-items: center; margin: 8px 0; }
+  .row button { height: 40px; font-size: 15px; padding: 0 14px; }
+  #cmdText { flex: 1; max-width: 260px; height: 38px; font-size: 16px; padding: 0 10px;
+             border: 1px solid #ccc; border-radius: 10px; -webkit-user-select: text; user-select: text; }
+  #cam { width: 100%; max-width: 320px; aspect-ratio: 4 / 3; background: #222; border-radius: 12px;
+         object-fit: contain; }
+  #ballStatus, #reply { font-size: 14px; margin: 6px 0; min-height: 1.2em; }
+  #reply { color: #3550c8; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -30,6 +44,29 @@
     <button data-action="wag_tail">꼬리</button>
     <button data-action="stop">정지</button>
   </div>
+  <div class="ball">
+    <h3>공 추적</h3>
+    <div class="colors">
+      <button data-color="red" style="background:#e53935">빨강</button>
+      <button data-color="orange" style="background:#fb8c00">주황</button>
+      <button data-color="yellow" style="background:#fdd835;color:#333;text-shadow:none">노랑</button>
+      <button data-color="green" style="background:#43a047">초록</button>
+      <button data-color="blue" style="background:#1e88e5">파랑</button>
+      <button data-color="purple" style="background:#8e24aa">보라</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="lookOnly"> 고개로만 보기</label>
+      <button id="ballStop">추적 정지</button>
+    </div>
+    <div class="row">
+      <input id="cmdText" placeholder="예: 파란 공 따라가 / 앉아">
+      <button id="cmdSend">보내기</button>
+    </div>
+    <div id="reply"></div>
+    <div id="ballStatus">대기 중</div>
+    <label class="row"><input type="checkbox" id="camOn"> 카메라 보기 (검출 결과)</label>
+    <img id="cam" alt="">
+  </div>
 <script>
   // rosbridge runs on the same host as this page (port 9090)
   const url = `ws://${location.hostname}:9090`;
@@ -44,6 +81,19 @@
       statusEl.textContent = '연결됨: ' + url;
       send({op: 'advertise', topic: '/cmd_vel', type: 'geometry_msgs/msg/Twist'});
       send({op: 'advertise', topic: '/pidog/action', type: 'std_msgs/msg/String'});
+      send({op: 'advertise', topic: '/ball_follower/target', type: 'std_msgs/msg/String'});
+      send({op: 'advertise', topic: '/speech/text', type: 'std_msgs/msg/String'});
+      send({op: 'subscribe', topic: '/ball_follower/status', type: 'std_msgs/msg/String'});
+      send({op: 'subscribe', topic: '/speech/reply', type: 'std_msgs/msg/String'});
+      if (camOn.checked) subscribeCam(true);
+    };
+    ws.onmessage = ev => {
+      const m = JSON.parse(ev.data);
+      if (m.op !== 'publish') return;
+      if (m.topic === '/ball_follower/status') showStatus(JSON.parse(m.msg.data));
+      else if (m.topic === '/speech/reply') replyEl.textContent = '🐶 ' + m.msg.data;
+      else if (m.topic === '/perception/ball_debug/compressed')
+        camEl.src = 'data:image/jpeg;base64,' + m.msg.data;   // uint8[] arrives base64
     };
     ws.onclose = () => { statusEl.textContent = '연결 끊김, 재시도 중...'; setTimeout(connect, 2000); };
   }
@@ -75,6 +125,44 @@
     b.addEventListener('click', () =>
       send({op: 'publish', topic: '/pidog/action', msg: {data: b.dataset.action}}));
   });
+
+  // ---------- ball tracking ----------
+  const camEl = document.getElementById('cam'), camOn = document.getElementById('camOn');
+  const replyEl = document.getElementById('reply'), ballStatusEl = document.getElementById('ballStatus');
+  const STATE_KO = {idle: '대기', searching: '찾는 중', tracking: '추적 중', approaching: '다가가는 중',
+                    arrived: '도착', lost: '못 찾음'};
+  const pub = (topic, data) => send({op: 'publish', topic, msg: {data}});
+
+  function showStatus(st) {
+    document.querySelectorAll('.colors button').forEach(b =>
+      b.classList.toggle('on', st.state !== 'idle' && b.dataset.color === st.target));
+    ballStatusEl.textContent = st.state === 'idle'
+      ? `대기 중${st.reason ? ' (' + st.reason + ')' : ''}`
+      : `${st.target}: ${STATE_KO[st.state] || st.state}  · 고개 yaw ${st.yaw}° pitch ${st.pitch}°`;
+  }
+
+  function subscribeCam(on) {
+    const topic = '/perception/ball_debug/compressed';
+    if (on) send({op: 'subscribe', topic, type: 'sensor_msgs/msg/CompressedImage',
+                  throttle_rate: 200, queue_length: 1});
+    else { send({op: 'unsubscribe', topic}); camEl.removeAttribute('src'); }
+  }
+  camOn.addEventListener('change', () => subscribeCam(camOn.checked));
+
+  document.querySelectorAll('.colors button').forEach(b => b.addEventListener('click', () =>
+    pub('/ball_follower/target', b.dataset.color + (document.getElementById('lookOnly').checked ? ':look' : ''))));
+  document.getElementById('ballStop').addEventListener('click', () => pub('/ball_follower/target', 'stop'));
+
+  const cmdText = document.getElementById('cmdText');
+  function sendCmd() {
+    const t = cmdText.value.trim();
+    if (!t) return;
+    pub('/speech/text', t);
+    replyEl.textContent = '… ' + t;
+    cmdText.value = '';
+  }
+  document.getElementById('cmdSend').addEventListener('click', sendCmd);
+  cmdText.addEventListener('keydown', e => { if (e.key === 'Enter') sendCmd(); });
 
   connect();
 </script>

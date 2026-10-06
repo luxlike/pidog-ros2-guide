@@ -19,6 +19,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
       # PiDog / robot-hat hardware dependencies
       python3-gpiozero python3-lgpio python3-smbus python3-smbus2 python3-spidev \
       python3-serial python3-pil python3-numpy \
+      # Vision (pidog_perception: HSV ball detection, JPEG decode)
+      python3-opencv python3-pytest \
       # Audio (robot_hat.music)
       python3-pyaudio portaudio19-dev libportaudio2 \
       python3-pygame libsdl2-mixer-2.0-0 \

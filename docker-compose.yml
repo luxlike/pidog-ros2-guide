@@ -6,6 +6,8 @@ x-ros-common: &ros-common
   environment:
     - ROS_DOMAIN_ID=7
     - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+    # Optional: Claude backend for vla_planner (passed through from the host shell / .env)
+    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
 
 services:
   zenoh:

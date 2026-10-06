@@ -10,6 +10,8 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>pidog_driver</exec_depend>
+  <exec_depend>pidog_perception</exec_depend>
+  <exec_depend>pidog_behavior</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
 
   <export>

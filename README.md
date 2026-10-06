@@ -60,6 +60,7 @@ docker compose logs -f pidog   # "PiDog driver ready", "Rosbridge WebSocket serv
 | 6 | [Claude Code로 개발하기](docs/06-dev-workflow.md) | Pi에서 Claude Code, CLAUDE.md, 권한 설정, git 워크플로 |
 | 7 | [트러블슈팅](docs/07-troubleshooting.md) | 실제로 겪은 에러 모음과 해결법 |
 | 8 | [로드맵](docs/08-roadmap.md) | 피지컬 AI 계층 구조, RL 정책 / FSM / VLA 연결 방향 |
+| 9 | [색깔 공 추적 + 자연어 명령](docs/09-ball-tracking.md) | 카메라, HSV 공 검출, 고개·몸 추종, Claude/규칙 플래너 (VLA 1단계) |
 
 ## 저장소 구조
 
@@ -72,10 +73,13 @@ docker compose logs -f pidog   # "PiDog driver ready", "Rosbridge WebSocket serv
 ├─ .claude/settings.json   # Claude Code 권한 설정
 ├─ ws/                     # colcon 워크스페이스 (컨테이너의 /ws)
 │  ├─ src/pidog_driver/    # driver_node, imu_node
-│  ├─ src/pidog_bringup/   # robot.launch.py, config/pidog.yaml
+│  ├─ src/pidog_bringup/   # robot.launch.py, ball_follow.launch.py, config/*.yaml
+│  ├─ src/pidog_perception/ # camera_node, ball_tracker_node (HSV 색 공 검출)
+│  ├─ src/pidog_behavior/  # ball_follower_node, vla_planner_node (자연어 → 스킬)
 │  └─ web/index.html       # 휴대폰 브라우저용 컨트롤러
 ├─ clients/                # iOS(Swift) / Android(Kotlin) rosbridge 클라이언트
 ├─ scripts/check_deps.py   # pidog/robot_hat 누락 모듈 일괄 점검
+├─ scripts/camera_stream.py # 호스트용 picamera2 MJPEG 서버 (컨테이너 camera_node가 읽음)
 └─ docs/                   # 단계별 가이드
 ```
 

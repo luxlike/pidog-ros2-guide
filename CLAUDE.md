@@ -9,7 +9,10 @@
 
 ## 패키지
 - pidog_driver: driver_node (cmd_vel, pidog/action, joint_commands 구독 / imu/data, joint_states 발행)
-- pidog_bringup: robot.launch.py (driver + rosbridge 9090 + 웹 8080)
+- pidog_bringup: robot.launch.py (driver + rosbridge 9090 + 웹 8080), ball_follow.launch.py (공 추적 스택, config/ball.yaml)
+- pidog_perception: camera_node (호스트 scripts/camera_stream.py MJPEG → /camera/image_raw/compressed), ball_tracker_node (/perception/balls JSON)
+- pidog_behavior: ball_follower_node (/ball_follower/target "red" | "red:look" | "stop"), vla_planner_node (/speech/text → 스킬, ANTHROPIC_API_KEY 없으면 규칙 파서)
+- 단위 테스트(ROS 불필요): cd ws/src/<pkg> && python3 -m pytest test -q
 
 ## 자주 쓰는 명령
 - 빌드: docker exec pidog bash -c "cd /ws && colcon build --symlink-install"
@@ -19,7 +22,7 @@
 
 ## 규칙 (중요)
 - Pidog() 인스턴스는 driver_node 하나에서만 생성한다. 다른 노드나 테스트 스크립트에서 Pidog()를 생성하지 않는다.
-- 로봇을 움직이는 명령(/cmd_vel, /pidog/action, /joint_commands 발행, driver 재시작)은 실행 전에 반드시 사용자에게 확인한다.
+- 로봇을 움직이는 명령(/cmd_vel, /pidog/action, /joint_commands, /ball_follower/target, /speech/text 발행, driver 재시작)은 실행 전에 반드시 사용자에게 확인한다.
 - 관절 각도는 도(degree) 단위, ±90도 안전 한계를 유지한다.
 - 컨테이너 안에서 apt/pip로 설치한 패키지는 확인 후 반드시 Dockerfile에도 반영한다.
 - 코드 수정 후에는 빌드와 로그로 에러가 없는지 확인하고 결과를 요약한다.

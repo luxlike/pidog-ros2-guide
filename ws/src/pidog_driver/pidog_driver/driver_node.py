@@ -4,6 +4,7 @@ Subscribes
   /cmd_vel          geometry_msgs/Twist          walk / turn (sign & direction only)
   /pidog/action     std_msgs/String              built-in SunFounder actions ("sit", "stand", ...)
   /joint_commands   std_msgs/Float64MultiArray   12 joint targets in DEGREES, NaN = keep current
+                                                 (legs all NaN = head/tail only, gait keeps running)
 
 Publishes
   /imu/data         sensor_msgs/Imu              raw SH3001 values (unit conversion TBD)
@@ -96,7 +97,10 @@ class PidogDriver(Node):
         speed = self.get_parameter('joint_speed').value
         d = list(msg.data)
         with self.lock:
-            self.mode = 'joint'
+            # Head/tail-only commands (all legs NaN) must not interrupt walking:
+            # the ball follower moves the head while /cmd_vel drives the gait.
+            if not all(math.isnan(v) for v in d[0:8]):
+                self.mode = 'joint'
             cur_legs = list(getattr(self.dog, 'leg_current_angles', [0.0] * 8))
             cur_head = list(getattr(self.dog, 'head_current_angles', [0.0] * 3))
 

@@ -46,6 +46,7 @@ ws/src/
 5. `pidog_sim_mujoco` 노드 → `sim:=true/false`만 바꿔 정책 노드를 그대로 실행
 6. 실물 정책 테스트 (몸체를 띄운 상태 → 지면)
 7. FSM, 인지, 음성 노드 → 마지막에 LLM/VLA 계층
+   - ✅ 첫 단계: [색깔 공 추적 + 자연어 명령](09-ball-tracking.md) (카메라 → HSV 검출 → 추종 스킬 ← Claude/규칙 플래너)
 
 ---
-이전: [7. 트러블슈팅](07-troubleshooting.md) · [README로](../README.md)
+이전: [7. 트러블슈팅](07-troubleshooting.md) · 다음: [9. 색깔 공 추적](09-ball-tracking.md) · [README로](../README.md)

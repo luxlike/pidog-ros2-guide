@@ -6,3 +6,6 @@ __pycache__/
 .lgd-nfy*
 ws/web/certs/
 .DS_Store
+
+# API keys for docker compose
+.env

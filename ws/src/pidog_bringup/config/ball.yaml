@@ -1,0 +1,50 @@
+# Color ball tracking (camera_node -> ball_tracker -> ball_follower <- vla_planner)
+camera_node:
+  ros__parameters:
+    source: mjpeg                               # mjpeg (host scripts/camera_stream.py) | v4l2 | picamera2
+    url: http://127.0.0.1:8081/stream.mjpg
+    device: "0"                                 # for v4l2
+    width: 640
+    height: 480
+    fps: 15.0
+
+ball_tracker:
+  ros__parameters:
+    colors: [red, orange, yellow, green, blue, purple]
+    min_radius_px: 6          # in the 320 px wide processed image
+    min_circularity: 0.55     # 1.0 = perfect circle; lower if balls are partly hidden
+    process_width: 320
+    # OpenCV HSV (H 0-179). 6 values per range, red needs two ranges (hue wraps at 0).
+    # Tune with the debug image: ros2 topic hz /perception/balls, web UI "공 추적" view.
+    hsv.red:    [0, 120, 70, 8, 255, 255, 170, 120, 70, 179, 255, 255]
+    hsv.orange: [9, 120, 90, 21, 255, 255]
+    hsv.yellow: [22, 100, 100, 35, 255, 255]
+    hsv.green:  [36, 70, 50, 85, 255, 255]
+    hsv.blue:   [90, 110, 50, 128, 255, 255]
+    hsv.purple: [129, 60, 50, 160, 255, 255]
+
+ball_follower:
+  ros__parameters:
+    rate: 10.0
+    walk: true                # false = head tracking only, robot never walks
+    kp_yaw: 8.0
+    kp_pitch: 6.0
+    yaw_sign: 1.0             # flip to -1.0 if the head turns AWAY from the ball
+    pitch_sign: 1.0           # flip to -1.0 if the head tilts the wrong way
+    yaw_limit: 60.0
+    pitch_min: -25.0
+    pitch_max: 20.0
+    turn_yaw_threshold: 25.0
+    approach_yaw_max: 15.0
+    arrive_radius: 0.16       # stop when ball radius >= 16 % of image width
+    lost_timeout: 1.0
+    search_timeout: 8.0
+    search_turn: true
+    max_follow_time: 120.0
+    wag_on_arrive: true
+
+vla_planner:
+  ros__parameters:
+    backend: auto             # auto | claude | rules  (auto = claude if ANTHROPIC_API_KEY is set)
+    model: claude-haiku-4-5-20251001
+    timeout: 15.0
