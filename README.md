@@ -10,8 +10,8 @@ Raspberry Pi 5 기반 [SunFounder PiDog](https://github.com/sunfounder/pidog) 4�
 [휴대폰 브라우저 / iOS / Android 앱]
           │  WebSocket (9090)          HTTP (8080)
           ▼                                │
-┌──────────────── pidog 컨테이너 (ROS 2 Lyrical) ────────────────┐
-│  rosbridge_websocket ──/cmd_vel, /pidog/action──▶ pidog_driver │──▶ 서보 12개 / IMU
+┌──────────────── pidog 컨테이너 (ROS 2 Lyrical) ───────────────────┐
+│  rosbridge_websocket ──/cmd_vel, /pidog/action──▶ pidog_driver  │──▶ 서보 12개 / IMU
 │  http.server (/ws/web)                                          │
 └─────────────────────────────────────────────────────────────────┘
           ▲  rmw_zenoh
