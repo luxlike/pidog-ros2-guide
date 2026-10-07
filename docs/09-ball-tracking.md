@@ -7,13 +7,13 @@
 ```
 [호스트] scripts/camera_stream.py (picamera2 → MJPEG :8081)
               │ http://127.0.0.1:8081/stream.mjpg
-┌─────────────┼──────────────── pidog 컨테이너 ─────────────────────────────────┐
+┌─────────────┼──────────────── pidog 컨테이너 ─────────────────────────────────────┐
 │  camera_node ──/camera/image_raw/compressed──▶ ball_tracker                     │
 │                                                   │ /perception/balls (JSON)    │
 │  /speech/text ─▶ vla_planner ──/ball_follower/target──▶ ball_follower           │
 │  (웹·STT·CLI)     │  Claude tool use 또는                 │ /joint_commands (고개) │
-│                   │  오프라인 규칙 파서                    │ /cmd_vel (회전·전진)   │
-│                   └─/pidog/action, /speech/reply          ▼                      │
+│                   │  오프라인 규칙 파서                    │ /cmd_vel (회전·전진)      │
+│                   └─/pidog/action, /speech/reply          ▼                     │
 │                                                     pidog_driver ──▶ 서보        │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
